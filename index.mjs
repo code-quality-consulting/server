@@ -1,42 +1,67 @@
 import http from "http";
-import parseq from "./dependencies/parseq.mjs";
 import assert from "assert";
 
-function get_requestor(callback, value) {
+function get_requestor(callback) {
     const options = {
-        port: 8081
+        host: "localhost",
+        port: 8080
     };
-    http.get("localhost", options, function(response) {
+    http.get(options, function (response) {
         const status_code = response.statusCode;
-        const content_type = res.headers["content-type"];
+        const content_type = response.headers["content-type"];
 
         let error;
         if (status_code !== 200) {
-           error = new Error(`Invalid content-type.\n`
-               + `Expected text/plain but received ${content_type}.`
-           );
+            error = new Error(
+                "Request Failed.\n"
+                +
+                `Status Code: ${status_code}.`
+            );
         }
         if (status_code === 200) {
             if (
-                !(/^text\/plain$/.test(content_type))
+                !(/^text\/html$/.test(content_type))
             ) {
-                callback(undefined, error);
-                response.resume(); 
+                error = new Error(
+                    "Invalid content-type.\n"
+                    +
+                    `Expected text/html but received ${content_type}.`
+                );
             }
 
-            if (/^text\/plain$/.test(content_type)) {
-                callback(response); 
+            if (/^text\/html$/.test(content_type)) {
+                callback(response);
+                response.setEncoding("utf8");
+                let rawData = "";
+                response.on("data", function (chunk) {
+                    rawData += chunk;
+                });
             }
         }
+        if (error) {
+            callback(undefined, error);
+            response.resume();
+        }
+        response.on("end", function () {
+        });
+    }).on("error", function (error) {
+        const {message} = error;
+        callback(undefined, message);
     });
+
 }
 
-function log_server(value, reason) {
-    if (value === undefined) {
-         console.log(reason);
+function log_server(response, reason) {
+    //const assert = assert.strict;
+    if (response === undefined) {
+        console.error("Failure: \n");
+        console.error(reason);
     }
-    if (value !== undefined) {
-         console.log(value);
+    if (response !== undefined) {
+        const status_code = response.statusCode;
+        const content_type = response.headers["content_type"];
+        assert.equal(content_type, "text/html");
+        assert.equal(status_code, "200");
     }
 }
 
