@@ -7,6 +7,7 @@ function get_requestor(callback) {
         port: 8080
     };
     http.get(options, function (response) {
+        console.log(response.headers);
         const status_code = response.statusCode;
         const content_type = response.headers["content-type"];
 
@@ -30,7 +31,10 @@ function get_requestor(callback) {
             }
 
             if (/^text\/html$/.test(content_type)) {
-                callback(response);
+                callback({
+                    status_code,
+                    content_type
+                });
                 response.setEncoding("utf8");
                 let rawData = "";
                 response.on("data", function (chunk) {
@@ -52,14 +56,15 @@ function get_requestor(callback) {
 }
 
 function log_server(response, reason) {
-    //const assert = assert.strict;
     if (response === undefined) {
+        console.log(reason);
         console.error("Failure: \n");
         console.error(reason);
     }
     if (response !== undefined) {
-        const status_code = response.statusCode;
-        const content_type = response.headers["content_type"];
+        const status_code = response["status_code"];
+        const content_type = response["content_type"];
+        console.log(content_type);
         assert.equal(content_type, "text/html");
         assert.equal(status_code, "200");
     }
